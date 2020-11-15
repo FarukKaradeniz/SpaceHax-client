@@ -1,0 +1,2 @@
+# SpaceHax-client
+Haxball bot

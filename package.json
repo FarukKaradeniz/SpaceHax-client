@@ -1,0 +1,22 @@
+{
+  "name": "spacehax-client",
+  "version": "1.0.0",
+  "description": "Haxball bot for space bounce map",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FarukKaradeniz/SpaceHax-client.git"
+  },
+  "keywords": [
+    "Haxball"
+  ],
+  "author": "Ömer Faruk Karadeniz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FarukKaradeniz/SpaceHax-client/issues"
+  },
+  "homepage": "https://github.com/FarukKaradeniz/SpaceHax-client#readme"
+}

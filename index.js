@@ -1,12 +1,21 @@
 import puppeteer from "puppeteer"
-import init from "./src/room.js"
-import getArgs from "./src/cmd.js";
+import config from "./roomConfig.js";
+
+import { HEADLESS_HOST_URL } from "./src/constants.js";
 
 
 (async () => {
-    const browser = await puppeteer.launch({headless: true});
+    const browser = await puppeteer.launch({headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
-    await page.goto('https://html5.haxball.com/headless', {waitUntil: 'networkidle2'});
-    await page.exposeFunction("getArgs", getArgs);
-    await page.evaluate(init)
+    await page.setBypassCSP(true);
+    console.log("browser page created");
+    await page.goto(HEADLESS_HOST_URL, {waitUntil: 'networkidle2'});
+    console.log("page loaded");
+    const roomConfig = config;
+    await page.evaluate((roomConfig) => {
+        window.roomConfig = roomConfig
+    }, roomConfig);
+    await page.addScriptTag({path: './src/room.js'})
+    console.log("room created");
+
 })();

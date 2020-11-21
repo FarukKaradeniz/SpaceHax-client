@@ -19,3 +19,8 @@ room.onPlayerJoin = function (player) {
 room.onPlayerLeave = function (player) {
     updateAdmins();
 }
+
+room.onRoomLink = function (link) {
+    console.log(link)
+    printRoomLink(link)
+}

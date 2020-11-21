@@ -1,0 +1,1 @@
+export const HEADLESS_HOST_URL = "https://html5.haxball.com/headless";

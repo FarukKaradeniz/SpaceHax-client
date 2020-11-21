@@ -11,11 +11,11 @@ import { HEADLESS_HOST_URL } from "./src/constants.js";
     console.log("browser page created");
     await page.goto(HEADLESS_HOST_URL, {waitUntil: 'networkidle2'});
     console.log("page loaded");
+    await page.exposeFunction("printRoomLink", (link) => console.log(link))
     const roomConfig = config;
     await page.evaluate((roomConfig) => {
         window.roomConfig = roomConfig
     }, roomConfig);
     await page.addScriptTag({path: './src/room.js'})
     console.log("room created");
-
 })();

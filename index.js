@@ -5,7 +5,8 @@ import { HEADLESS_HOST_URL } from "./src/constants.js";
 
 
 (async () => {
-    const browser = await puppeteer.launch({headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const browser = await puppeteer.launch({headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--single-process', '--no-zygote'] });
     const page = await browser.newPage();
     await page.setBypassCSP(true);
     console.log("browser page created");

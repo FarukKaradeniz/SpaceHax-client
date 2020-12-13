@@ -18,6 +18,12 @@ let updateAdmins = () => {
     players.set(p.id, {...p, admin: true});
 }
 
+room.onPlayerAdminChange = (changedPlayer, byPlayer) => {
+    let p = players.get(changedPlayer.id);
+    p.admin = changedPlayer.admin;
+    players.set(changedPlayer.id, p);
+}
+
 room.onPlayerJoin = (player) =>  {
     players.set(player.id,
         {...player, authenticated: false, superAdmin: false});
@@ -38,6 +44,7 @@ room.onPlayerLeave = (player) => {
 
 room.onRoomLink = (link) => {
     console.log(link)
+    room.setTeamsLock(true)
     printRoomLink(link)
 }
 

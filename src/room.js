@@ -8,12 +8,14 @@ room.setTimeLimit(0);
 let players = new Map();
 
 // If there are no admins left in the room give admin to one of the remaining players.
-const updateAdmins = () => {
+let updateAdmins = () => {
     // Get all players
-    var players = room.getPlayerList();
-    if (players.length === 0) return; // No players left, do nothing.
-    if (players.find((player) => player.admin) != null) return; // There's an admin left so do nothing.
-    room.setPlayerAdmin(players[0].id, true); // Give admin to the first non admin player in the list
+    var playerList = room.getPlayerList();
+    if (playerList.length === 1) return; // No players left, do nothing.
+    if (playerList.filter((player) => player.id !== 0).find((player) => player.admin) != null) return; // There's an admin left so do nothing.
+    let p = players.get(playerList[1].id);
+    room.setPlayerAdmin(p.id, true); // Give admin to the first non admin player in the list
+    players.set(p.id, {...p, admin: true});
 }
 
 room.onPlayerJoin = (player) =>  {
@@ -26,7 +28,7 @@ room.onPlayerJoin = (player) =>  {
         }
     }, 30_000);
     updateAdmins();
-    room.sendChat(`Hoşgeldiniz, lütfen giriş yapınız.`);
+    room.sendChat(`Hoşgeldiniz @${player.name}, lütfen giriş yapınız. Kayıtlı değilseniz !kaydol <şifre> yazıp kaydolunuz. Kayıtlı iseniz !onayla <şifre> yazınız.`);
 }
 
 room.onPlayerLeave = (player) => {

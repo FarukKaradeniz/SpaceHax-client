@@ -7,6 +7,25 @@ room.setTimeLimit(0);
 
 let players = new Map();
 
+let currentGame = {
+    possession: {
+        red: 0,
+        blue: 0,
+    }, // {red, blue}
+    goalsByRed: [], // {scoredBy, assisted:nullable, time, isOwnGoal}
+    goalsByBlue: [],
+    ballTouch: {
+        lastTouch: undefined,
+        secondToLastTouch: undefined,
+    }
+};
+
+let team = {
+    SPEC: 0,
+    RED: 1,
+    BLUE: 2,
+};
+
 // If there are no admins left in the room give admin to one of the remaining players.
 let updateAdmins = () => {
     // Get all players
@@ -46,6 +65,64 @@ room.onRoomLink = (link) => {
     console.log(link)
     room.setTeamsLock(true)
     printRoomLink(link)
+}
+
+room.onGameStart = (byPlayer) => {
+
+}
+
+room.onTeamVictory = () => {
+    // save stats
+}
+
+room.onGameStop = (byPlayer) => {
+    currentGame.possession.blue = 0;
+    currentGame.possession.red = 0;
+    currentGame.goalsByBlue = [];
+    currentGame.goalsByRed = [];
+    currentGame.ballTouch.lastTouch = undefined;
+    currentGame.ballTouch.secondToLastTouch = undefined;
+}
+
+room.onPlayerBallKick = (player) => {
+    if (currentGame.ballTouch.lastTouch && currentGame.ballTouch.lastTouch.id !== player.id) {
+        currentGame.ballTouch.secondToLastTouch = currentGame.ballTouch.lastTouch
+    }
+    currentGame.ballTouch.lastTouch = players.get(player.id);
+    player.team === team.RED ? currentGame.possession.red++ : currentGame.possession.blue++;
+}
+
+room.onPlayerTeamChange = (changedPlayer, byPlayer) => {
+    if (changedPlayer.id === 0) {
+        room.setPlayerTeam(0, team.SPEC);
+        return
+    }
+    let p = players.get(changedPlayer.id);
+    p.team = changedPlayer.team;
+    players.set(p.id, p);
+}
+
+room.onTeamGoal = (teamId) => {
+    // {scoredBy, assisted:nullable, time, isOwnGoal}
+    let stats = {
+        scoredBy: currentGame.ballTouch.lastTouch,
+        time: room.getScores().time,
+    }
+    if (teamId === currentGame.ballTouch.lastTouch.team) {
+        if(currentGame.ballTouch.secondToLastTouch !== undefined && currentGame.ballTouch.lastTouch.team === currentGame.ballTouch.secondToLastTouch.team) { // is assist?
+            stats.assisted = currentGame.ballTouch.secondToLastTouch;
+        }
+        stats.isOwnGoal = false;
+    }
+    else { // Own Goal
+        stats.isOwnGoal = true;
+    }
+    teamId === team.RED ? currentGame.goalsByRed.push(stats) : currentGame.goalsByBlue.push(stats);
+}
+
+room.onPositionsReset = () => {
+    currentGame.ballTouch.lastTouch = undefined;
+    currentGame.ballTouch.secondToLastTouch = undefined;
 }
 
 room.onPlayerChat = (player, message) => {

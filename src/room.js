@@ -26,6 +26,11 @@ let team = {
     BLUE: 2,
 };
 
+let ballProps;
+let playerRadius = 15;
+let isPaused = true;
+let firstTouch = false;
+
 // If there are no admins left in the room give admin to one of the remaining players.
 let updateAdmins = () => {
     // Get all players
@@ -68,7 +73,8 @@ room.onRoomLink = (link) => {
 }
 
 room.onGameStart = (byPlayer) => {
-
+    ballProps = room.getDiscProperties(0);
+    isPaused = false;
 }
 
 room.onTeamVictory = () => {
@@ -82,13 +88,16 @@ room.onGameStop = (byPlayer) => {
     currentGame.goalsByRed = [];
     currentGame.ballTouch.lastTouch = undefined;
     currentGame.ballTouch.secondToLastTouch = undefined;
+    ballProps = undefined;
+    isPaused = true;
+    firstTouch = false;
 }
 
 room.onPlayerBallKick = (player) => {
     if (currentGame.ballTouch.lastTouch && currentGame.ballTouch.lastTouch.id !== player.id) {
         currentGame.ballTouch.secondToLastTouch = currentGame.ballTouch.lastTouch
     }
-    currentGame.ballTouch.lastTouch = players.get(player.id);
+    currentGame.ballTouch.lastTouch = {id: player.id, team: player.team};
     player.team === team.RED ? currentGame.possession.red++ : currentGame.possession.blue++;
 }
 
@@ -126,6 +135,19 @@ room.onTeamGoal = (teamId) => {
 room.onPositionsReset = () => {
     currentGame.ballTouch.lastTouch = undefined;
     currentGame.ballTouch.secondToLastTouch = undefined;
+}
+
+room.onGameTick = () => {
+    if (room.getScores().time === 0) return
+    setLastTouch();
+}
+
+room.onGamePause = (byPlayer) => {
+    isPaused = true;
+}
+
+room.onGameUnpause = (byPlayer) => {
+    isPaused = false;
 }
 
 room.onPlayerChat = (player, message) => {
@@ -195,5 +217,30 @@ let login = (id, username, password) => {
         player.authenticated = true;
         players.set(id, player);
         return room.sendChat(`@${username}, başarıyla giriş yaptınız. Hoşgeldiniz!`);
+    }
+}
+
+let getDistanceBetweenTwoPoints = (p1, p2) => {
+    let distance1 = p1.x - p2.x;
+    let distance2 = p1.y - p2.y;
+    return Math.sqrt(distance1 * distance1 + distance2 * distance2);
+}
+
+let setLastTouch = () => {
+    let ballPosition = room.getBallPosition();
+    let threshold = ballProps.radius + playerRadius + 0.01;
+    let inGamePlayers = room.getPlayerList().filter(p => p.team !== team.SPEC);
+    for (let i=0; i<inGamePlayers.length; i++) {
+        let distanceBetweenBall = getDistanceBetweenTwoPoints(ballPosition, inGamePlayers[i].position);
+        if (!firstTouch && distanceBetweenBall < threshold+1) {
+            currentGame.ballTouch.lastTouch = {id: inGamePlayers[i].id, team: inGamePlayers[i].team};
+            firstTouch = true;
+        }
+        if (distanceBetweenBall < threshold) {
+            if (currentGame.ballTouch.lastTouch && currentGame.ballTouch.lastTouch.id !== inGamePlayers[i].id) {
+                currentGame.ballTouch.secondToLastTouch = currentGame.ballTouch.lastTouch;
+            }
+            currentGame.ballTouch.lastTouch = {id: inGamePlayers[i].id, team: inGamePlayers[i].team};
+        }
     }
 }

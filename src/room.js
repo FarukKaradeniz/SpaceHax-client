@@ -29,6 +29,7 @@ let team = {
 let ballProps;
 let playerRadius = 15;
 let isPaused = true;
+let firstTouch = false;
 
 // If there are no admins left in the room give admin to one of the remaining players.
 let updateAdmins = () => {
@@ -89,13 +90,14 @@ room.onGameStop = (byPlayer) => {
     currentGame.ballTouch.secondToLastTouch = undefined;
     ballProps = undefined;
     isPaused = true;
+    firstTouch = false;
 }
 
 room.onPlayerBallKick = (player) => {
     if (currentGame.ballTouch.lastTouch && currentGame.ballTouch.lastTouch.id !== player.id) {
         currentGame.ballTouch.secondToLastTouch = currentGame.ballTouch.lastTouch
     }
-    currentGame.ballTouch.lastTouch = players.get(player.id);
+    currentGame.ballTouch.lastTouch = {id: player.id, team: player.team};
     player.team === team.RED ? currentGame.possession.red++ : currentGame.possession.blue++;
 }
 
@@ -136,9 +138,7 @@ room.onPositionsReset = () => {
 }
 
 room.onGameTick = () => {
-    if (isPaused || room.getScores().time === 0) {
-        return
-    }
+    if (room.getScores().time === 0) return
     setLastTouch();
 }
 
@@ -232,11 +232,15 @@ let setLastTouch = () => {
     let inGamePlayers = room.getPlayerList().filter(p => p.team !== team.SPEC);
     for (let i=0; i<inGamePlayers.length; i++) {
         let distanceBetweenBall = getDistanceBetweenTwoPoints(ballPosition, inGamePlayers[i].position);
+        if (!firstTouch && distanceBetweenBall < threshold+1) {
+            currentGame.ballTouch.lastTouch = {id: inGamePlayers[i].id, team: inGamePlayers[i].team};
+            firstTouch = true;
+        }
         if (distanceBetweenBall < threshold) {
             if (currentGame.ballTouch.lastTouch && currentGame.ballTouch.lastTouch.id !== inGamePlayers[i].id) {
                 currentGame.ballTouch.secondToLastTouch = currentGame.ballTouch.lastTouch;
             }
-            currentGame.ballTouch.lastTouch = players.get(inGamePlayers[i].id);
+            currentGame.ballTouch.lastTouch = {id: inGamePlayers[i].id, team: inGamePlayers[i].team};
         }
     }
 }

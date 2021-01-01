@@ -108,6 +108,9 @@ room.onTeamGoal = (teamId) => {
         scoredBy: currentGame.ballTouch.lastTouch,
         time: room.getScores().time,
     }
+    if (!currentGame.ballTouch.lastTouch) {
+        return teamId === team.RED ? currentGame.goalsByRed.push(stats) : currentGame.goalsByBlue.push(stats);
+    }
     if (teamId === currentGame.ballTouch.lastTouch.team) {
         if(currentGame.ballTouch.secondToLastTouch !== undefined && currentGame.ballTouch.lastTouch.team === currentGame.ballTouch.secondToLastTouch.team) { // is assist?
             stats.assisted = currentGame.ballTouch.secondToLastTouch;

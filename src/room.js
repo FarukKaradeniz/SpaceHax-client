@@ -5,6 +5,10 @@ room.setDefaultStadium("Big");
 room.setScoreLimit(5);
 room.setTimeLimit(0);
 
+const instance = axios.create({
+    baseURL: window.roomConfig.BASE_URL,
+});
+
 let players = new Map();
 
 let currentGame = {
@@ -50,7 +54,7 @@ room.onPlayerAdminChange = (changedPlayer, byPlayer) => {
 
 room.onPlayerJoin = (player) =>  {
     players.set(player.id,
-        {...player, authenticated: false, superAdmin: false});
+        {...player, authenticated: false, isSuperAdmin: false, isAdmin: false});
     setTimeout(() => {
         let p = players.get(player.id);
         if (p && !p.authenticated) {
@@ -166,7 +170,7 @@ room.onPlayerChat = (player, message) => {
             room.sendChat(`@${player.name}, ${error}`);
             return false;
         }
-        register(player.name, password);
+        register(player.id, player.name, password);
         return false;
     }
 
@@ -180,23 +184,18 @@ let extractPassword = (message) => {
     return [split[1], undefined];
 }
 
-let mapToJson = (map) => {
-    return JSON.stringify([...map]);
-}
-
-let jsonToMap = (jsonStr) => {
-    return new Map(JSON.parse(jsonStr));
-}
-
-let register = (username, password) => {
-    let db = jsonToMap(localStorage.getItem(USER_DATABASE));
-    if (db.get(username)) {
-        return room.sendChat(`@${username}, hesabınız zaten bulunmaktadır.`);
-    }
-
-    let map = db.set(username, password);
-    localStorage.setItem(USER_DATABASE, mapToJson(map))
-    return room.sendChat(`@${username}, kaydınız gerçekleşti. "!onayla <şifre>" komutu ile giriş yapmayı unutmayınız.`);
+let register = (id, username, password) => {
+    instance({
+        url: `/auth/signup`,
+        method: 'post',
+        data: {name: username, password, room: "sbb", conn: players.get(id).conn},
+    }).catch((e) => {
+        if (e.response.status === 409) {
+            room.sendChat(`@${username}, hesabınız zaten bulunmaktadır. Odadan kicklenmemek için giriş yapınız.`);
+        } else {
+            room.sendChat(`Sunucuya erişimde hata oluştur. Kayıt işlemi gerçekleşmedi.`);
+        }
+    }).then((response) => room.sendChat(`@${username}, kaydınız gerçekleşti. "!onayla <şifre>" komutu ile giriş yapmayı unutmayınız.`));
 }
 
 let login = (id, username, password) => {
@@ -205,19 +204,22 @@ let login = (id, username, password) => {
         return room.sendChat(`@${username}, daha önce zaten giriş yaptınız.`);
     }
 
-    let db = jsonToMap(localStorage.getItem(USER_DATABASE));
-    if (!db.get(username)) {
-        return room.sendChat(`@${username}, hesabınız bulunmamaktadır. Kaydolmak için "!kaydol <şifre>" komutunu kullanınız.`);
-    }
-    if (db.get(username) !== password) {
-        return room.sendChat(`@${username}, yanlış şifre girdiniz.`);
-    }
-    else {
-        // TODO db'den getir götür yapılacak bu değerler
+    instance({
+        url: `/auth/login`,
+        method: 'post',
+        data: {name: username, password, room: "sbb"},
+    }).catch((e) => {
+        if (e.response.status === 401) {
+            room.sendChat(`@${username}, yanlış şifre girdiniz. Kayıtlı değilseniz önce "!kaydol <şifre>" yaparak kaydolunuz.`);
+        }
+    }).then((response) => {
+        player.isAdmin = response.data.isAdmin;
+        player.isSuperAdmin = response.data.isSuperAdmin;
+        player.playerId = response.data.playerId; // this is is from db. might remove later
         player.authenticated = true;
         players.set(id, player);
-        return room.sendChat(`@${username}, başarıyla giriş yaptınız. Hoşgeldiniz!`);
-    }
+        room.sendChat(`@${username}, başarıyla giriş yaptınız. Hoşgeldiniz!`);
+    });
 }
 
 let getDistanceBetweenTwoPoints = (p1, p2) => {

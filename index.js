@@ -17,6 +17,7 @@ import { HEADLESS_HOST_URL } from "./src/constants.js";
     await page.evaluate((roomConfig) => {
         window.roomConfig = roomConfig
     }, roomConfig);
+    await page.addScriptTag({url: 'https://unpkg.com/axios/dist/axios.min.js'})
     await page.addScriptTag({path: './src/room.js'})
     console.log("room created");
 })();

@@ -8,7 +8,8 @@ const config = {
     noPlayer: false,
     playerName: "Kappa",
     geo: {"code": "tr", "lat" : 41.0054958, "lon" : 28.8720965},
-    BASE_URL: 'https://5f54caa828af.ngrok.io', // TODO args'tan al
+    BASE_URL: 'https://40bace7aa6e0.ngrok.io', // TODO args'tan al
+    alias: 'sbb'
     // TODO room'u da args'tan al
 };
 

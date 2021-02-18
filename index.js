@@ -1,11 +1,16 @@
 import puppeteer from "puppeteer"
 import config from "./roomConfig.js";
+import fetch from 'node-fetch';
 
 import { HEADLESS_HOST_URL } from "./src/constants.js";
 
 
 (async () => {
-    const browser = await puppeteer.launch({headless: true,
+    let roomConfig = config;
+    const response = await fetch(roomConfig.BASE_URL + '/admin/configs/' + roomConfig.alias);
+    const body = await response.json();
+    roomConfig = {...roomConfig, ...body}
+    const browser = await puppeteer.launch({headless: false, // TODO headless will stay false for debugging purposes
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--single-process', '--no-zygote'] });
     const page = await browser.newPage();
     await page.setBypassCSP(true);
@@ -13,7 +18,7 @@ import { HEADLESS_HOST_URL } from "./src/constants.js";
     await page.goto(HEADLESS_HOST_URL, {waitUntil: 'networkidle2'});
     console.log("page loaded");
     await page.exposeFunction("printRoomLink", (link) => console.log(link))
-    const roomConfig = config;
+
     await page.evaluate((roomConfig) => {
         window.roomConfig = roomConfig
     }, roomConfig);

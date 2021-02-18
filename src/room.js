@@ -1,7 +1,7 @@
 var room = HBInit(window.roomConfig);
-room.setDefaultStadium("Big");
-room.setScoreLimit(5);
-room.setTimeLimit(0);
+room.setDefaultStadium(window.roomConfig.map);
+room.setScoreLimit(window.roomConfig.scoreLimit);
+room.setTimeLimit(window.roomConfig.timeLimit);
 
 const req = axios.create({
     baseURL: window.roomConfig.BASE_URL,
@@ -216,7 +216,7 @@ let register = (id, username, password) => {
     req({
         url: `/auth/signup`,
         method: 'post',
-        data: {name: username, password, room: "sbb", conn: players.get(id).conn},
+        data: {name: username, password, room: window.roomConfig.alias, conn: players.get(id).conn},
     }).then((response) => room.sendChat(`@${username}, kaydınız gerçekleşti. "!onayla <şifre>" komutu ile giriş yapmayı unutmayınız.`))
     .catch((e) => {
         if (e.response.status === 409) {
@@ -236,7 +236,7 @@ let login = (id, username, password) => {
     req({
         url: `/auth/login`,
         method: 'post',
-        data: {name: username, password, room: "sbb"},
+        data: {name: username, password, room: window.roomConfig.alias},
     }).then((response) => {
         player.isAdmin = response.data.isAdmin;
         player.isSuperAdmin = response.data.isSuperAdmin;

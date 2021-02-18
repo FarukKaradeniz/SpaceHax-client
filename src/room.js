@@ -19,7 +19,7 @@ let currentGame = {
     ballTouch: {
         lastTouch: undefined,
         secondToLastTouch: undefined,
-    }
+    },
 };
 
 let team = {
@@ -79,8 +79,43 @@ room.onGameStart = (byPlayer) => {
     isPaused = false;
 }
 
-room.onTeamVictory = () => {
-    // save stats
+room.onTeamVictory = (scores) => {
+    // TODO check player count, if player count isn't equal to the maxPlayer in config don't save the game
+    let redWin = scores.red > scores.blue;
+    let played = room.getPlayerList().filter(p => p.team !== team.SPEC).map(p => players.get(p.id));
+    let stats = new Map();
+    played.forEach(p => {
+        let won = 0;
+        if (redWin && p.team === team.RED) won = 1;
+        if (!redWin && p.team === team.BLUE) won = 1;
+        stats.set(p.playerId, {
+            "goalsCount": 0,
+            "assistsCount": 0,
+            "won": won,
+        })
+    });
+    currentGame.goalsByRed.concat(currentGame.goalsByBlue).forEach(p => {
+        stats.get(players.get(p.scoredBy.id).playerId) &&
+        stats.set(players.get(p.scoredBy.id).playerId, {
+                ...stats.get(players.get(p.scoredBy.id).playerId),
+                "goalsCount": stats.get(players.get(p.scoredBy.id).playerId).goalsCount + 1
+            });
+        if (p.assisted)
+            stats.set(players.get(p.assisted.id).playerId, {
+                ...stats.get(players.get(p.assisted.id).playerId),
+                "assistsCount": stats.get(players.get(p.assisted.id).playerId).assistsCount + 1
+            });
+    });
+    req({
+        url: `/game/stats`,
+        method: 'post',
+        data: {
+            played: played.map(p => p.playerId),
+            stats: Object.fromEntries(stats),
+            room: window.roomConfig.alias,
+        },
+    })
+    // TODO print game stats after game ends
 }
 
 room.onGameStop = (byPlayer) => {

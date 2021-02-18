@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js --token"
+    "start": "node index.js --token=\"thr1.AAAAAGAuKduUEG6CdLq4og.z1e_LPjoPNc\" --baseUrl=\"https://8d8ee54511ef.ngrok.io\" --room=\"sbb\""
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   "homepage": "https://github.com/FarukKaradeniz/SpaceHax-client#readme",
   "dependencies": {
     "arg": "^4.1.3",
+    "node-fetch": "^2.6.1",
     "puppeteer": "^5.4.1"
   }
 }

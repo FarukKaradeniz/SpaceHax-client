@@ -32,6 +32,10 @@ let ballProps;
 let playerRadius = 15;
 let isPaused = true;
 let firstTouch = false;
+let currentStreak = {
+    team: team.RED,
+    count: 0,
+};
 
 // If there are no admins left in the room give admin to one of the remaining players.
 let updateAdmins = () => {
@@ -82,12 +86,16 @@ room.onGameStart = (byPlayer) => {
 room.onTeamVictory = (scores) => {
     // TODO check player count, if player count isn't equal to the maxPlayer in config don't save the game
     let redWin = scores.red > scores.blue;
+    if ((currentStreak.team === team.RED && redWin) || (currentStreak.team === team.BLUE && !redWin)) currentStreak.count++
+    else {
+        currentStreak.count = 1;
+        currentStreak.team = currentStreak.team === team.RED ? team.BLUE : team.RED;
+    }
     let played = room.getPlayerList().filter(p => p.team !== team.SPEC).map(p => players.get(p.id));
     let stats = new Map();
     played.forEach(p => {
         let won = 0;
-        if (redWin && p.team === team.RED) won = 1;
-        if (!redWin && p.team === team.BLUE) won = 1;
+        if ((redWin && p.team === team.RED) || (!redWin && p.team === team.BLUE)) won = 1;
         stats.set(p.playerId, {
             "goalsCount": 0,
             "assistsCount": 0,
@@ -116,6 +124,20 @@ room.onTeamVictory = (scores) => {
         },
     })
     // TODO print game stats after game ends
+    if (currentStreak.count > window.roomConfig.topStreak) {
+        req({
+            url: `/admin/configs/${window.roomConfig.alias}`,
+            method: 'put',
+            data: {
+                ...window.roomConfig,
+                topStreak: currentStreak.count,
+                topPlayers: JSON.stringify(played.filter(p => p.team === currentStreak.team).map(p => p.name)),
+            }
+        }).then(() => {
+            window.roomConfig.topStreak = currentStreak.count;
+            window.roomConfig.topPlayers = JSON.stringify(played.filter(p => p.team === currentStreak.team).map(p => p.name));
+        })
+    }
 }
 
 room.onGameStop = (byPlayer) => {
@@ -212,6 +234,14 @@ room.onPlayerChat = (player, message) => {
         if (message === "!stats") getStats(player.name)
         else {
             message.substring(7).length > 0 ? getStats(message.substring(7)) : room.sendChat("İstatistiği görmek istediğiniz kişinin ismini giriniz.")
+        }
+    }
+    if (message === "!seri") room.sendChat(`${currentStreak.team === team.RED ? 'RED' : 'BLUE'} takımının ${currentStreak.count} maçlık kazanma serisi var.`)
+    if (message === "!rekorSeri") {
+        if (window.roomConfig.topStreak > 0) {
+            room.sendChat(`${window.roomConfig.topStreak} maçlık rekor kazanma serisi ${window.roomConfig.topPlayers.replaceAll("\"", "").replaceAll(",", ", ")}`)
+        } else {
+            room.sendChat(`Kayıtlı rekor seri bulunmamaktadır.`)
         }
     }
 }

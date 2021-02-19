@@ -9,7 +9,7 @@ import { HEADLESS_HOST_URL } from "./src/constants.js";
     let roomConfig = config;
     const response = await fetch(roomConfig.BASE_URL + '/admin/configs/' + roomConfig.alias);
     const body = await response.json();
-    roomConfig = {...roomConfig, ...body}
+    roomConfig = {...roomConfig, ...body, topPlayers: JSON.parse(body.topPlayers)}
     const browser = await puppeteer.launch({headless: false, // TODO headless will stay false for debugging purposes
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--single-process', '--no-zygote'] });
     const page = await browser.newPage();

@@ -36,6 +36,7 @@ let currentStreak = {
     team: team.RED,
     count: 0,
 };
+let muteAll = false;
 
 // If there are no admins left in the room give admin to one of the remaining players.
 let updateAdmins = () => {
@@ -230,12 +231,20 @@ room.onPlayerChat = (player, message) => {
         return false;
     }
 
+    if (players.get(player.id).muted) return false; // player is muted
+    if (muteAll && message !== "!unmuteall") {
+        return players.get(player.id).isAdmin; // if player is admin, they can talk
+    }
+
+    // STATS
     if (message.startsWith("!stats")) {
         if (message === "!stats") getStats(player.name)
         else {
             message.substring(7).length > 0 ? getStats(message.substring(7)) : room.sendChat("İstatistiği görmek istediğiniz kişinin ismini giriniz.")
         }
     }
+
+    // STREAK
     if (message === "!seri") room.sendChat(`${currentStreak.team === team.RED ? 'RED' : 'BLUE'} takımının ${currentStreak.count} maçlık kazanma serisi var.`)
     if (message === "!rekorSeri") {
         if (window.roomConfig.topStreak > 0) {
@@ -243,6 +252,50 @@ room.onPlayerChat = (player, message) => {
         } else {
             room.sendChat(`Kayıtlı rekor seri bulunmamaktadır.`)
         }
+    }
+
+    // GENERAL
+    if (message === "!clearbans" && player.admin) room.clearBans();
+    if (message === "!bb") room.kickPlayer(player.id, "Görüşmek üzere...", false);
+    if (message === "!bb+") room.kickPlayer(player.id, "Görüşmek üzere...", true);
+    if (message === "!komutlar") { // Herkesin kullanabileceği normal komutlar
+        room.sendChat(`(!seri), (!rekorSeri), (!stats <isim>), (!afk), (!noafk), (!afklar) (!clearbans)`)
+    }
+    if (message === "!adminkomutlar") {
+        room.sendChat(`(!muteall) (!unmuteall) (!mute #0) (!unmute #0)`)
+    }
+
+    // AFK
+    if (message === "!afk") {
+        players.set(player.id, {...players.get(player.id), afk: true});
+        room.sendChat(`${player.name} artık AFK.`);
+    }
+    if (message === "!noafk") {
+        players.set(player.id, {...players.get(player.id), afk: false});
+        room.sendChat(`${player.name} artık AFK değil, oynamaya hazır.`);
+    }
+    if (message === "!afklar") {
+        room.sendChat(`AFK Oyuncular: ${[...players.values()].filter(p => p.afk).map(p => p.name).join(", ")}`);
+    }
+
+    // MUTES
+    if (message === "!muteall" && players.get(player.id).isAdmin) {
+        muteAll = true;
+        room.sendChat(`Oda susturuldu. Sadece adminler konuşabilir.`);
+    }
+    if (message === "!unmuteall" && players.get(player.id).isAdmin) {
+        muteAll = false;
+        room.sendChat(`Odadaki herkes artık konuşabilir.`);
+    }
+    if (message !== "!muteall" && message.startsWith("!mute") && players.get(player.id).isAdmin) {
+        let [playerId,] = extractPassword(message.trim());
+        players.set(parseInt(playerId.substring(1)), {...players.get(parseInt(playerId.substring(1))), muted: true});
+        room.sendChat(`${players.get(parseInt(playerId.substring(1))).name} susturuldu.`);
+    }
+    if (message !== "!unmuteall" && message.startsWith("!unmute") && players.get(player.id).isAdmin) {
+        let [playerId,] = extractPassword(message.trim());
+        players.set(parseInt(playerId.substring(1)), {...players.get(parseInt(playerId.substring(1))), muted: false});
+        room.sendChat(`${players.get(parseInt(playerId.substring(1))).name} konuşmasına izin verildi.`);
     }
 }
 

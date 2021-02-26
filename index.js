@@ -24,7 +24,7 @@ import { HEADLESS_HOST_URL } from "./src/constants.js";
     });
     const body = await response.json();
     roomConfig = {...roomConfig, ...body, topPlayers: JSON.parse(body.topPlayers), authToken: obj.token}
-    const browser = await puppeteer.launch({headless: false, // TODO headless will stay false for debugging purposes
+    const browser = await puppeteer.launch({headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--single-process', '--no-zygote'] });
     const page = await browser.newPage();
     await page.setBypassCSP(true);

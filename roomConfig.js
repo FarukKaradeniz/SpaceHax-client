@@ -2,7 +2,7 @@ import getArgs from "./src/cmd.js";
 
 const config = {
     maxPlayers: 18,
-    public: false,
+    public: true,
     token: getArgs()["--token"],
     noPlayer: false,
     playerName: "Kappa",

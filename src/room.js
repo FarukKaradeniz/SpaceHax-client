@@ -1,5 +1,5 @@
 var room = HBInit(window.roomConfig);
-room.setDefaultStadium(window.roomConfig.map);
+room.setCustomStadium(window.roomConfig.map);
 room.setScoreLimit(window.roomConfig.scoreLimit);
 room.setTimeLimit(window.roomConfig.timeLimit);
 

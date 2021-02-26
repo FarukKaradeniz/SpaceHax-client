@@ -8,7 +8,8 @@ const config = {
     playerName: "Kappa",
     geo: {"code": "tr", "lat" : 41.0054958, "lon" : 28.8720965},
     BASE_URL: getArgs()["--baseUrl"],
-    alias: getArgs()["--room"]
+    alias: getArgs()["--room"],
+    pw: getArgs()["--pw"],
 };
 
 // TODO roomname limitler falan istek yapılarak alınmalı

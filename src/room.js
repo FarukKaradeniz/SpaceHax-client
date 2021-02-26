@@ -3,8 +3,11 @@ room.setDefaultStadium(window.roomConfig.map);
 room.setScoreLimit(window.roomConfig.scoreLimit);
 room.setTimeLimit(window.roomConfig.timeLimit);
 
-const req = axios.create({
+let req = axios.create({
     baseURL: window.roomConfig.BASE_URL,
+    headers: {
+        'Authorization': 'Bearer ' + window.roomConfig.authToken,
+    }
 });
 
 let players = new Map();

@@ -40,11 +40,24 @@ let currentStreak = {
     count: 0,
 };
 let muteAll = false;
+let mapChangeable = false;
+
+let COLOR = {
+    BLUE: 0x66E6F5,
+    RED: 0xFA5646,
+    ORANGE: 0xFFC12F,
+    GREEN: 0x7DFA89,
+    YELLOW: 0xFFF22A,
+    PURPLE: 0xDB83FF,
+    PINK: 0xFF9EEA,
+    DARK_BLUE: 0x4F72FF,
+    GRAY: 0x97A8C4,
+};
 
 // If there are no admins left in the room give admin to one of the remaining players.
 let updateAdmins = () => {
     // Get all players
-    var playerList = room.getPlayerList();
+    let playerList = room.getPlayerList();
     if (playerList.length === 1) return; // No players left, do nothing.
     if (playerList.filter((player) => player.id !== 0).find((player) => player.admin) != null) return; // There's an admin left so do nothing.
     let p = players.get(playerList[1].id);
@@ -68,7 +81,8 @@ room.onPlayerJoin = (player) =>  {
         }
     }, 30_000);
     updateAdmins();
-    room.sendChat(`Hoşgeldiniz @${player.name}, lütfen giriş yapınız. Kayıtlı değilseniz !kaydol <şifre> yazıp kaydolunuz. Kayıtlı iseniz !onayla <şifre> yazınız.`);
+    room.sendAnnouncement(`Hoşgeldiniz ${player.name}, lütfen giriş yapınız. Kayıtlı değilseniz !kaydol <şifre> yazıp kaydolunuz. Kayıtlı iseniz !onayla <şifre> yazınız.`,
+        player.id, COLOR.YELLOW, "bold", 2);
 }
 
 room.onPlayerLeave = (player) => {
@@ -213,12 +227,19 @@ room.onGameUnpause = (byPlayer) => {
     isPaused = false;
 }
 
+room.onStadiumChange = (newStadiumName, byPlayer) => {
+    if (!mapChangeable && byPlayer.id !== 0) {
+        room.sendAnnouncement("Map değiştirilemez olarak ayarlandı.", undefined, COLOR.RED, "bold", 2);
+        room.setCustomStadium(window.roomConfig.map);
+    }
+}
+
 room.onPlayerChat = (player, message) => {
     // AUTH
     if (message.startsWith("!onayla")) {
         let [password, error] = extractPassword(message);
         if (error) {
-            room.sendChat(`@${player.name}, ${error}`);
+            room.sendAnnouncement(`${player.name}, ${error}`, player.id, COLOR.ORANGE, "bold", 2);
             return false;
         }
         login(player.id, player.name, password);
@@ -227,7 +248,7 @@ room.onPlayerChat = (player, message) => {
     if (message.startsWith("!kaydol")) {
         let [password, error] = extractPassword(message);
         if (error) {
-            room.sendChat(`@${player.name}, ${error}`);
+            room.sendAnnouncement(`${player.name}, ${error}`, player.id, COLOR.ORANGE, "bold", 2);
             return false;
         }
         register(player.id, player.name, password);
@@ -243,17 +264,16 @@ room.onPlayerChat = (player, message) => {
     if (message.startsWith("!stats")) {
         if (message === "!stats") getStats(player.name)
         else {
-            message.substring(7).length > 0 ? getStats(message.substring(7)) : room.sendChat("İstatistiği görmek istediğiniz kişinin ismini giriniz.")
+            message.substring(7).length > 0 ? getStats(message.substring(7)) : room.sendAnnouncement(`İstatistiği görmek istediğiniz kişinin ismini giriniz.`, player.id, COLOR.GREEN, "normal", 2)
         }
     }
-
     // STREAK
-    if (message === "!seri") room.sendChat(`${currentStreak.team === team.RED ? 'RED' : 'BLUE'} takımının ${currentStreak.count} maçlık kazanma serisi var.`)
+    if (message === "!seri")    room.sendAnnouncement(`${currentStreak.team === team.RED ? 'RED' : 'BLUE'} takımının ${currentStreak.count} maçlık kazanma serisi var.`, undefined, COLOR.GREEN, "normal", 2)
     if (message === "!rekorSeri") {
         if (window.roomConfig.topStreak > 0) {
-            room.sendChat(`${window.roomConfig.topStreak} maçlık rekor kazanma serisi ${window.roomConfig.topPlayers.replaceAll("\"", "").replaceAll(",", ", ")}`)
+            room.sendAnnouncement(`${window.roomConfig.topStreak} maçlık rekor kazanma serisi ( ${window.roomConfig.topPlayers.join(", ")} )`, undefined, COLOR.GREEN, "bold", 2)
         } else {
-            room.sendChat(`Kayıtlı rekor seri bulunmamaktadır.`)
+            room.sendAnnouncement(`Kayıtlı rekor seri bulunmamaktadır.`, undefined, COLOR.ORANGE, "bold", 2);
         }
     }
 
@@ -262,43 +282,52 @@ room.onPlayerChat = (player, message) => {
     if (message === "!bb") room.kickPlayer(player.id, "Görüşmek üzere...", false);
     if (message === "!bb+") room.kickPlayer(player.id, "Görüşmek üzere...", true);
     if (message === "!komutlar") { // Herkesin kullanabileceği normal komutlar
-        room.sendChat(`(!seri), (!rekorSeri), (!stats <isim>), (!afk), (!noafk), (!afklar) (!clearbans)`)
+        room.sendAnnouncement(`(!seri), (!rekorSeri), (!stats <isim>), (!afk), (!noafk), (!afklar) (!clearbans)`, undefined, COLOR.PINK, "bold", 2);
     }
     if (message === "!adminkomutlar") {
-        room.sendChat(`(!muteall) (!unmuteall) (!mute #0) (!unmute #0)`)
+        room.sendAnnouncement(`(!muteall) (!unmuteall) (!mute #0) (!unmute #0)`, undefined, COLOR.PINK, "bold", 2);
     }
 
     // AFK
     if (message === "!afk") {
         players.set(player.id, {...players.get(player.id), afk: true});
-        room.sendChat(`${player.name} artık AFK.`);
+        room.sendAnnouncement(`${player.name} artık AFK.`, undefined, COLOR.YELLOW, "normal", 2);
     }
     if (message === "!noafk") {
         players.set(player.id, {...players.get(player.id), afk: false});
-        room.sendChat(`${player.name} artık AFK değil, oynamaya hazır.`);
+        room.sendAnnouncement(`${player.name} artık AFK değil, oynamaya hazır.`, undefined, COLOR.YELLOW, "normal", 2);
     }
     if (message === "!afklar") {
-        room.sendChat(`AFK Oyuncular: ${[...players.values()].filter(p => p.afk).map(p => p.name).join(", ")}`);
+        room.sendAnnouncement(`AFK Oyuncular: ${[...players.values()].filter(p => p.afk).map(p => p.name).join(", ")}`, undefined, COLOR.YELLOW, "normal", 2);
     }
 
     // MUTES
     if (message === "!muteall" && players.get(player.id).isAdmin) {
         muteAll = true;
-        room.sendChat(`Oda susturuldu. Sadece adminler konuşabilir.`);
+        room.sendAnnouncement(`Oda susturuldu. Sadece adminler konuşabilir.`, undefined, COLOR.DARK_BLUE, "bold", 2);
     }
     if (message === "!unmuteall" && players.get(player.id).isAdmin) {
         muteAll = false;
-        room.sendChat(`Odadaki herkes artık konuşabilir.`);
+        room.sendAnnouncement(`Odadaki herkes artık konuşabilir.`, undefined, COLOR.DARK_BLUE, "bold", 2);
     }
     if (message !== "!muteall" && message.startsWith("!mute") && players.get(player.id).isAdmin) {
         let [playerId,] = extractPassword(message.trim());
         players.set(parseInt(playerId.substring(1)), {...players.get(parseInt(playerId.substring(1))), muted: true});
-        room.sendChat(`${players.get(parseInt(playerId.substring(1))).name} susturuldu.`);
+        room.sendAnnouncement(`${player.name} artık AFK.`, undefined, COLOR.DARK_BLUE, "bold", 2);
     }
     if (message !== "!unmuteall" && message.startsWith("!unmute") && players.get(player.id).isAdmin) {
         let [playerId,] = extractPassword(message.trim());
         players.set(parseInt(playerId.substring(1)), {...players.get(parseInt(playerId.substring(1))), muted: false});
-        room.sendChat(`${players.get(parseInt(playerId.substring(1))).name} konuşmasına izin verildi.`);
+        room.sendAnnouncement(`${players.get(parseInt(playerId.substring(1))).name} konuşmasına izin verildi.`, undefined, COLOR.DARK_BLUE, "bold", 2);
+    }
+
+    // ADMIN
+    if (message === "!admin" && players.get(player.id).isAdmin) {
+        room.setPlayerAdmin(player.id, true);
+    }
+    if (message === "!mapchangeable" && players.get(player.id).isSuperAdmin) {
+        mapChangeable = !mapChangeable
+        room.sendAnnouncement(`Map ${mapChangeable ? 'değiştirilebilir' : 'değiştirilemez'}`, undefined, COLOR.BLUE, "normal", 0);
     }
 }
 
@@ -318,17 +347,16 @@ let getStats = (playerName) => {
         }
     }).then((response) => {
         if (response.data.GamesPlayed > 0) {
-            room.sendChat(`${playerName} Gol: ${response.data.GoalsCount} Asist: ${response.data.AssistsCount} Maç Sayısı: ${response.data.GamesPlayed}
-                Kazanılan: ${response.data.GamesWon} Maç Başına Gol: ${(response.data.GoalsCount / response.data.GamesPlayed).toFixed(2)}`)
+            room.sendAnnouncement(`${playerName} ⟹ Gol: ${response.data.GoalsCount} 🔹 Asist: ${response.data.AssistsCount} 🔹 Maç Sayısı: ${response.data.GamesPlayed} 🔹 Kazanılan: ${response.data.GamesWon} 🔹 Maç Başına Gol: ${(response.data.GoalsCount / response.data.GamesPlayed).toFixed(2)}`, undefined, COLOR.YELLOW, "normal", 0);
         } else {
-            room.sendChat(`${playerName} henüz maç oynamadı.`)
+            room.sendAnnouncement(`${playerName} henüz maç oynamadı.`, undefined, 0x06d6a0, "normal", 0);
         }
 
     }).catch((e) => {
         if (e.response.status === 409) {
-            room.sendChat(`Kullanıcıya ait istatistik bulunamadı. Kullanıcı adını doğru girdiğinize emin olunuz`);
+            room.sendAnnouncement(`Kullanıcıya ait istatistik bulunamadı. Kullanıcı adını doğru girdiğinize emin olunuz`, undefined, COLOR.ORANGE, "bold", 0);
         } else {
-            room.sendChat(`Sunucuya erişimde hata oluştur. Kayıt işlemi gerçekleşmedi.`);
+            room.sendAnnouncement(`Sunucuya erişimde hata oluştur. Kayıt işlemi gerçekleşmedi.`, undefined, COLOR.RED, "bold", 0);
         }
     })
 }
@@ -338,20 +366,21 @@ let register = (id, username, password) => {
         url: `/auth/signup`,
         method: 'post',
         data: {name: username, password, room: window.roomConfig.alias, conn: players.get(id).conn},
-    }).then((response) => room.sendChat(`@${username}, kaydınız gerçekleşti. "!onayla <şifre>" komutu ile giriş yapmayı unutmayınız.`))
+    }).then((response) => room.sendAnnouncement(`${username}, kaydınız gerçekleşti. "!onayla <şifre>" komutu ile giriş yapmayı unutmayınız.`, undefined, COLOR.ORANGE, "bold", 0))
     .catch((e) => {
         if (e.response.status === 409) {
-            room.sendChat(`@${username}, hesabınız zaten bulunmaktadır. Odadan kicklenmemek için giriş yapınız.`);
+            room.sendAnnouncement(`${username}, hesabınız zaten bulunmaktadır. Odadan kicklenmemek için giriş yapınız.`, undefined, COLOR.ORANGE, "bold", 0);
         } else {
-            room.sendChat(`Sunucuya erişimde hata oluştur. Kayıt işlemi gerçekleşmedi.`);
+            room.sendAnnouncement(`Sunucuya erişimde hata oluştur. Kayıt işlemi gerçekleşmedi.`, undefined, COLOR.RED, "bold", 0);
         }
     });
 }
 
+
 let login = (id, username, password) => {
     let player = players.get(id);
     if (player.authenticated) {
-        return room.sendChat(`@${username}, daha önce zaten giriş yaptınız.`);
+        return room.sendAnnouncement(`${username}, daha önce zaten giriş yaptınız.`, id, COLOR.ORANGE, "bold", 0);
     }
 
     req({
@@ -364,10 +393,10 @@ let login = (id, username, password) => {
         player.playerId = response.data.playerId; // this is is from db. might remove later
         player.authenticated = true;
         players.set(id, player);
-        room.sendChat(`@${username}, başarıyla giriş yaptınız. Hoşgeldiniz!`);
+        room.sendAnnouncement(`${username}, başarıyla giriş yaptınız. Hoşgeldiniz!`, undefined, COLOR.BLUE, "bold", 0);
     }).catch((e) => {
         if (e.response.status === 401) {
-            room.sendChat(`@${username}, yanlış şifre girdiniz. Kayıtlı değilseniz önce "!kaydol <şifre>" yaparak kaydolunuz.`);
+            room.sendAnnouncement(`${username}, yanlış şifre girdiniz. Kayıtlı değilseniz önce "!kaydol <şifre>" yaparak kaydolunuz.`, undefined, COLOR.RED, "bold", 0);
         }
     });
 }

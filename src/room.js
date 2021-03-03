@@ -83,6 +83,8 @@ room.onPlayerJoin = (player) =>  {
     updateAdmins();
     room.sendAnnouncement(`Hoşgeldiniz ${player.name}, lütfen giriş yapınız. Kayıtlı değilseniz !kaydol <şifre> yazıp kaydolunuz. Kayıtlıysanız !onayla <şifre> yazınız.`,
         player.id, COLOR.YELLOW, "bold", 2);
+    room.sendAnnouncement(`ODANIN EKSİKLİKLERİ VAR VE HALA GELİŞTİRME AŞAMASINDADIR`,
+        player.id, COLOR.PURPLE, "italic", 2);
 }
 
 room.onPlayerLeave = (player) => {}

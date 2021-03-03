@@ -81,14 +81,11 @@ room.onPlayerJoin = (player) =>  {
         }
     }, 30_000);
     updateAdmins();
-    room.sendAnnouncement(`Hoşgeldiniz ${player.name}, lütfen giriş yapınız. Kayıtlı değilseniz !kaydol <şifre> yazıp kaydolunuz. Kayıtlı iseniz !onayla <şifre> yazınız.`,
+    room.sendAnnouncement(`Hoşgeldiniz ${player.name}, lütfen giriş yapınız. Kayıtlı değilseniz !kaydol <şifre> yazıp kaydolunuz. Kayıtlıysanız !onayla <şifre> yazınız.`,
         player.id, COLOR.YELLOW, "bold", 2);
 }
 
-room.onPlayerLeave = (player) => {
-    players.delete(player.id)
-    updateAdmins();
-}
+room.onPlayerLeave = (player) => {}
 
 room.onRoomLink = (link) => {
     console.log(link)
@@ -110,6 +107,20 @@ room.onTeamVictory = (scores) => {
         currentStreak.team = currentStreak.team === team.RED ? team.BLUE : team.RED;
     }
     let played = room.getPlayerList().filter(p => p.team !== team.SPEC).map(p => players.get(p.id));
+    if (currentStreak.count > window.roomConfig.topStreak) {
+        req({
+            url: `/admin/configs/${window.roomConfig.alias}`,
+            method: 'put',
+            data: {
+                ...window.roomConfig,
+                topStreak: currentStreak.count,
+                topPlayers: JSON.stringify(played.filter(p => p.team === currentStreak.team).map(p => p.name)),
+            }
+        }).then((response) => {
+            window.roomConfig.topStreak = response.data.topStreak;
+            window.roomConfig.topPlayers = JSON.parse(response.data.topPlayers);
+        })
+    }
     let stats = new Map();
     played.forEach(p => {
         let won = 0;
@@ -142,20 +153,6 @@ room.onTeamVictory = (scores) => {
         },
     })
     // TODO print game stats after game ends
-    if (currentStreak.count > window.roomConfig.topStreak) {
-        req({
-            url: `/admin/configs/${window.roomConfig.alias}`,
-            method: 'put',
-            data: {
-                ...window.roomConfig,
-                topStreak: currentStreak.count,
-                topPlayers: JSON.stringify(played.filter(p => p.team === currentStreak.team).map(p => p.name)),
-            }
-        }).then(() => {
-            window.roomConfig.topStreak = currentStreak.count;
-            window.roomConfig.topPlayers = JSON.stringify(played.filter(p => p.team === currentStreak.team).map(p => p.name));
-        })
-    }
 }
 
 room.onGameStop = (byPlayer) => {
@@ -234,6 +231,17 @@ room.onStadiumChange = (newStadiumName, byPlayer) => {
     }
 }
 
+room.onPlayerKicked = (kickedPlayer, reason, ban, byPlayer) => {
+    if (byPlayer && byPlayer.id !==0 && (!players.get(byPlayer.id).authenticated || !players.get(byPlayer.id).isAdmin)) {
+        ban && setTimeout(() => room.clearBan(kickedPlayer.id), 3_000);
+        room.kickPlayer(byPlayer.id, `Kick/Ban yetkiniz yok`, ban);
+    }
+    if (!byPlayer) {
+        players.delete(kickedPlayer.id)
+        updateAdmins();
+    }
+}
+
 room.onPlayerChat = (player, message) => {
     // AUTH
     if (message.startsWith("!onayla")) {
@@ -278,7 +286,10 @@ room.onPlayerChat = (player, message) => {
     }
 
     // GENERAL
-    if (message === "!clearbans" && player.admin) room.clearBans();
+    if (message === "!clearbans" && player.admin) {
+        room.clearBans();
+        room.sendAnnouncement(`Banlar temizlendi.`, undefined, COLOR.PINK, "bold", 2);
+    }
     if (message === "!bb") room.kickPlayer(player.id, "Görüşmek üzere...", false);
     if (message === "!bb+") room.kickPlayer(player.id, "Görüşmek üzere...", true);
     if (message === "!komutlar") { // Herkesin kullanabileceği normal komutlar

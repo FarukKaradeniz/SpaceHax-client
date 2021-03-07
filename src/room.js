@@ -23,6 +23,7 @@ let currentGame = {
         lastTouch: undefined,
         secondToLastTouch: undefined,
     },
+    printStats: [],
 };
 
 let team = {
@@ -58,7 +59,10 @@ let COLOR = {
 let updateAdmins = () => {
     // Get all players
     let playerList = room.getPlayerList();
-    if (playerList.length === 1) return; // No players left, do nothing.
+    if (playerList.length === 1) {
+        room.stopGame();
+        return; // No players left, do nothing.
+    }
     if (playerList.filter((player) => player.id !== 0).find((player) => player.admin) != null) return; // There's an admin left so do nothing.
     let p = players.get(playerList[1].id);
     room.setPlayerAdmin(p.id, true); // Give admin to the first non admin player in the list
@@ -154,7 +158,10 @@ room.onTeamVictory = (scores) => {
             room: window.roomConfig.alias,
         },
     })
-    // TODO print game stats after game ends
+    room.sendAnnouncement(`Maç sonucu: 🔴${scores.red}:${scores.blue}🔵 GOLLER:`, undefined, COLOR.YELLOW, "bold", 2);
+    currentGame.printStats.forEach(msg => {
+        room.sendAnnouncement(msg, undefined, COLOR.YELLOW, "bold", 2);
+    })
 }
 
 room.onGameStop = (byPlayer) => {
@@ -167,6 +174,7 @@ room.onGameStop = (byPlayer) => {
     ballProps = undefined;
     isPaused = true;
     firstTouch = false;
+    currentGame.printStats = [];
 }
 
 room.onPlayerBallKick = (player) => {
@@ -193,19 +201,27 @@ room.onTeamGoal = (teamId) => {
         scoredBy: currentGame.ballTouch.lastTouch,
         time: room.getScores().time,
     }
+
+    let msg = `${teamId === team.RED ? '🔴' : '🔵'} GOL: ${players.get(stats.scoredBy.id).name} [${Math.trunc(stats.time / 60).toString().padStart(2, "0")}:${Math.trunc(stats.time % 60).toString().padStart(2, "0")}]`
     if (!currentGame.ballTouch.lastTouch) {
+        room.sendAnnouncement(msg, undefined, COLOR.PURPLE, "bold", 2);
+        currentGame.printStats.push(msg);
         return teamId === team.RED ? currentGame.goalsByRed.push(stats) : currentGame.goalsByBlue.push(stats);
     }
     if (teamId === currentGame.ballTouch.lastTouch.team) {
         if(currentGame.ballTouch.secondToLastTouch !== undefined && currentGame.ballTouch.lastTouch.team === currentGame.ballTouch.secondToLastTouch.team) { // is assist?
             stats.assisted = currentGame.ballTouch.secondToLastTouch;
+            msg += `   ASİST: ${players.get(stats.assisted.id).name}`
         }
         stats.isOwnGoal = false;
     }
     else { // Own Goal
         stats.isOwnGoal = true;
+        msg += " Kendi Kalesine"
     }
     teamId === team.RED ? currentGame.goalsByRed.push(stats) : currentGame.goalsByBlue.push(stats);
+    room.sendAnnouncement(msg, undefined, COLOR.YELLOW, "bold", 2);
+    currentGame.printStats.push(msg);
 }
 
 room.onPositionsReset = () => {

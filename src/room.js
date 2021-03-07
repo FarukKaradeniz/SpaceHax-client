@@ -228,7 +228,7 @@ room.onGameUnpause = (byPlayer) => {
 
 room.onStadiumChange = (newStadiumName, byPlayer) => {
     if (!mapChangeable && byPlayer.id !== 0) {
-        room.sendAnnouncement("Map değiştirilemez olarak ayarlandı.", undefined, COLOR.RED, "bold", 2);
+        room.sendAnnouncement("Map değiştirilemez olarak ayarlanmıştır. Map'i değiştirmek için admin tarafından !mapchangeable komutu girilmelidir.", undefined, COLOR.RED, "bold", 2);
         room.setCustomStadium(window.roomConfig.map);
     }
 }
@@ -345,7 +345,7 @@ room.onPlayerChat = (player, message) => {
 }
 
 let extractPassword = (message) => {
-    let split = message.split(" ");
+    let split = message.trim().split(" ");
     if (split.length !== 2) {
         return [undefined, "hatalı şifre denemesi"];
     }

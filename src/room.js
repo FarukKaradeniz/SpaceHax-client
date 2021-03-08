@@ -376,7 +376,7 @@ let getStats = (playerName) => {
         }
     }).then((response) => {
         if (response.data.GamesPlayed > 0) {
-            room.sendAnnouncement(`${playerName} ⟹ Gol: ${response.data.GoalsCount} 🔹 Asist: ${response.data.AssistsCount} 🔹 Maç Sayısı: ${response.data.GamesPlayed} 🔹 Kazanılan: ${response.data.GamesWon} 🔹 Maç Başına Gol: ${(response.data.GoalsCount / response.data.GamesPlayed).toFixed(2)}`, undefined, COLOR.YELLOW, "normal", 0);
+            room.sendAnnouncement(`${playerName} ⟹ Gol: ${response.data.GoalsCount} 🔹 Asist: ${response.data.AssistsCount} 🔹 Maç Sayısı: ${response.data.GamesPlayed} 🔹 Kazanılan: ${response.data.GamesWon} 🔹 Kazanma Oranı: ${((response.data.GamesWon/response.data.GamesPlayed) * 100).toFixed(2)} 🔹 Maç Başına Gol: ${(response.data.GoalsCount / response.data.GamesPlayed).toFixed(2)}`, undefined, COLOR.YELLOW, "normal", 0);
         } else {
             room.sendAnnouncement(`${playerName} henüz maç oynamadı.`, undefined, 0x06d6a0, "normal", 0);
         }

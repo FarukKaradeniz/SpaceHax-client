@@ -6,7 +6,7 @@ const config = {
     token: getArgs()["--token"],
     noPlayer: false,
     playerName: "SpaceHax Bot",
-    geo: {"code": "tr", "lat" : 39.925533, "lon" : 32.866287},
+    geo: {"code": "tr", "lat" : 40.9892722, "lon" : 28.9709463},
     BASE_URL: getArgs()["--baseUrl"],
     alias: getArgs()["--room"],
     pw: getArgs()["--pw"],
